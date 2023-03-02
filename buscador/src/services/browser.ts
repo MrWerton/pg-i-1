@@ -1,16 +1,19 @@
-import puppeteer, { Page } from "puppeteer";
+import { Browser, Page } from "puppeteer";
 
-export class Browser {
+export class BrowserAdapter {
     private linksCached = new Set();
     public allLinks: string[] = [];
     public pages: Object[] = [];
 
-    private async getAllLinksOfPage(page: Page) {
+
+    private async getAllLinksOfPage(page: Page, url: string) {
         const links = await page.$$eval('a', (anchors) => {
             return anchors.map((a) => a.href);
         });
 
-        return links;
+        const linksLessCurrent = links.filter(link => link !== url);
+
+        return linksLessCurrent;
     }
     private async verifyIfPageHasSemantic(page: Page) {
         const hasHeader = await page.evaluate(() => {
@@ -55,14 +58,12 @@ export class Browser {
     }
 
 
-    async search(url: string, term: string, depth: number) {
-
+    async search(url: string, term: string, depth: number, browser: Browser, page: Page) {
+        console.log(url)
         this.linksCached.add(url)
 
-        const browser = await puppeteer.launch();
-        const page = await browser.newPage();
-        await page.goto(url, { waitUntil: 'load', timeout: 0 });
-
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 0 });
+        page.setDefaultNavigationTimeout(0)
         const hasH1 = await this.verifyIfPageHasH1(page);
         const termInPage = await this.getTermInPage(page, term);
         const hasSemantic = await this.verifyIfPageHasSemantic(page);
@@ -72,19 +73,22 @@ export class Browser {
         }
 
         if (depth !== 0) {
-            const links = await this.getAllLinksOfPage(page)
+            const links = await this.getAllLinksOfPage(page, url)
             for (let i = 0; i < links.length; i++) {
                 let currentLink = links[i]
                 links.forEach(link => this.allLinks.push(link))
 
                 if (!this.linksCached.has(currentLink)) {
-                    await this.search(currentLink, term, depth - 1);
+                    try {
+                        await this.search(currentLink, term, depth - 1, browser, page);
+                    } catch (err) {
+                        return
+                    }
                 }
 
             }
 
         }
-        await browser.close();
     }
 
     clearAll() {
