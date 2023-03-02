@@ -12,7 +12,7 @@ app.post('/', async (req, res) => {
 
     const occursOfLinks = guugre.pages.map((item: any) => {
         return {
-            amount: guugre.allLinks.filter(u => item.link === u).length,
+            reference_amount: guugre.allLinks.filter(u => item.link === u).length,
             ...item
         }
     })
@@ -20,7 +20,7 @@ app.post('/', async (req, res) => {
     const scorePage = occursOfLinks.map(item => {
         const hasSemantic = item.hasSemantic ? 0 : -1
         return {
-            score: item.amount + hasSemantic + item.size,
+            score: item.reference_amount + hasSemantic + item.amountApparition,
             content: item.content,
             link: item.link,
 

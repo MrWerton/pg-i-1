@@ -29,35 +29,27 @@ export class Browser {
             return false;
         }
     }
-    private async getTermInPage(page: Page, term: string, link: string) {
+    private async getTermInPage(page: Page, term: string) {
 
         const contentPage = await page.content();
         const regexForRemoveTags = /(<([^>]+)>)/ig;
-        const contentWithOutTag = contentPage.replace(regexForRemoveTags, '');
-        const content = contentWithOutTag?.replace(/^\s+/gm, '')?.match(new RegExp(`.{0,20}\\b${term}\\b.{0,20}`, 'gim'));
-
+        const contentWithoutTag = contentPage.replace(regexForRemoveTags, '');
+        const content = contentWithoutTag?.replace(/^\s+/gm, '')?.match(new RegExp(`.{0,20}\\b${term}\\b.{0,20}`, 'gim'));
 
         const removedNull = content?.filter(item => item !== null);
         if (removedNull?.length === 0) {
             return null;
         }
 
-
         return removedNull;
-
 
     }
     private async getAmountApparitionOfTermInPage(page: Page, term: string) {
-
-        const tags = await page.$$('body *:not(script)');
         const textsInsideTag = await page.content();
         const content = textsInsideTag.trim()
 
         const amountApparition = content?.replace(/^\s+/gm, '')?.match(new RegExp(`\\b${term}\\b`, 'gim'))?.length;
         return amountApparition;
-
-
-
 
     }
 
@@ -74,12 +66,11 @@ export class Browser {
         const page = await browser.newPage();
         await page.goto(url);
 
-
-        const size = await this.getAmountApparitionOfTermInPage(page, term);
-        const termInPage = await this.getTermInPage(page, term, url);
+        const amountApparition = await this.getAmountApparitionOfTermInPage(page, term);
+        const termInPage = await this.getTermInPage(page, term);
         const hasSemantic = await this.verifyIfPageHasSemantic(page);
         if (termInPage !== null) {
-            this.pages.push({ link: url, content: termInPage, size, hasSemantic })
+            this.pages.push({ link: url, content: termInPage, amountApparition, hasSemantic })
         }
 
         if (depth !== 0) {
@@ -88,14 +79,11 @@ export class Browser {
                 let currentLink = links[i]
                 links.forEach(link => this.allLinks.push(link))
 
-
                 if (!this.linksCached.has(currentLink)) {
                     await this.search(currentLink, term, depth - 1);
                 }
 
             }
-
-
 
         }
         await browser.close();
