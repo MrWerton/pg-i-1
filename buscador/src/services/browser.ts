@@ -36,27 +36,24 @@ export class Browser {
         const contentWithoutTag = contentPage.replace(regexForRemoveTags, '');
         const content = contentWithoutTag?.replace(/^\s+/gm, '')?.match(new RegExp(`.{0,20}\\b${term}\\b.{0,20}`, 'gim'));
 
-        const removedNull = content?.filter(item => item !== null);
-        if (removedNull?.length === 0) {
+        const removedNull = content?.filter(item => item !== null).join(" ");
+
+        if (removedNull?.length === undefined || removedNull.trim().length === 0) {
             return null;
         }
 
-        return removedNull;
+        return removedNull
 
     }
-    private async getAmountApparitionOfTermInPage(page: Page, term: string) {
-        const textsInsideTag = await page.content();
-        const content = textsInsideTag.trim()
+    private async verifyIfPageHasH1(page: Page) {
+        const hasH1 = await page.evaluate(() => {
+            return document.querySelector('h1') !== null;
+        });
 
-        const amountApparition = content?.replace(/^\s+/gm, '')?.match(new RegExp(`\\b${term}\\b`, 'gim'))?.length;
-        return amountApparition;
+        return hasH1;
 
     }
 
-
-    getAmountLink(url: string) {
-        return this.allLinks.filter(link => link === url).length;
-    }
 
     async search(url: string, term: string, depth: number) {
 
@@ -64,13 +61,14 @@ export class Browser {
 
         const browser = await puppeteer.launch();
         const page = await browser.newPage();
-        await page.goto(url);
+        await page.goto(url, { waitUntil: 'load', timeout: 0 });
 
-        const amountApparition = await this.getAmountApparitionOfTermInPage(page, term);
+        const hasH1 = await this.verifyIfPageHasH1(page);
         const termInPage = await this.getTermInPage(page, term);
         const hasSemantic = await this.verifyIfPageHasSemantic(page);
+
         if (termInPage !== null) {
-            this.pages.push({ link: url, content: termInPage, amountApparition, hasSemantic })
+            this.pages.push({ link: url, content: termInPage, hasH1, hasSemantic })
         }
 
         if (depth !== 0) {
@@ -87,6 +85,12 @@ export class Browser {
 
         }
         await browser.close();
+    }
+
+    clearAll() {
+        this.allLinks = []
+        this.pages = []
+        this.linksCached = new Set()
     }
 
 }

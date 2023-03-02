@@ -1,0 +1,14 @@
+-- CreateTable
+CREATE TABLE "Page" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "url" TEXT NOT NULL,
+    "score" INTEGER NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "Content" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "value" TEXT NOT NULL,
+    "pageId" INTEGER,
+    CONSTRAINT "Content_pageId_fkey" FOREIGN KEY ("pageId") REFERENCES "Page" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
