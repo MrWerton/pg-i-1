@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import express from 'express';
 import puppeteer from 'puppeteer';
-import { BrowserAdapter } from './services/browser';
+import { Guugri } from './services/guugri';
 
 
 const app = express()
@@ -12,42 +12,44 @@ app.post('/', async (req, res) => {
     const { url, term, deep } = req.body;
 
 
-    /*  const page = await prisma.storage.findFirst({
-         where: {
-             url: url, term: term, deep: deep
-         },
-         include: {
-             pages: true
-         }
-     })
- 
-     if (page) {
-         return res.json({ page })
- 
-     } */
-    const guugre = new BrowserAdapter();
+    /*    const storage = await prisma.storage.findFirst({
+           where: {
+               url: url, term: term, deep: deep
+           },
+           include: {
+               pages: true
+           }
+       })
+   
+       if (storage) {
+           return res.json({ storage })
+   
+       } */
+    const guugre = new Guugri();
 
     const browser = await puppeteer.launch({
         headless: true
     });
     const page = await browser.newPage();
     await guugre.search(url, term, deep, browser, page);
+
+
     const occursOfLinks = guugre.pages.map((item: any) => {
-        const reference_amount = guugre.allLinks.filter(link => item.link === link);
-        console.log(reference_amount, "RE")
+        const reference_amount = guugre.allLinks.filter(link => item.link === link).length;
         return {
-            reference_amount: reference_amount.length,
+            reference_amount: reference_amount,
             ...item
         }
     })
 
     const scorePage = occursOfLinks.map(item => {
         const hasSemantic = item.hasSemantic ? 0 : -1
-        const hasH1 = item.hasH1 ? 5 : 0
+        const hasH1 = item.hasH1 ? 2 : 0
         return {
             score: item.reference_amount + hasSemantic + hasH1,
             content: item.content,
             link: item.link,
+            ...item,
         }
     })
     const order = scorePage.sort(compare)
